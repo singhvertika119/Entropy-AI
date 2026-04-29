@@ -1,0 +1,6 @@
+fastapi
+uvicorn
+chromadb
+langchain
+langchain-groq
+python-dotenv
