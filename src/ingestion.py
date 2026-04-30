@@ -3,6 +3,7 @@ import re
 from collections import deque
 import os
 from ragPipeline import setup_knowledge_base, retrieve_relevant_docs
+from llmService import generate_rca
 
 LOG_FILE = "../logs/dummy_app.log"
 CONTEXT_WINDOW_SIZE = 20 # How many lines of history to keep
@@ -26,9 +27,8 @@ def tail_and_analyze(file_path):
         file.seek(0, 2) 
         print(f"Listening to {file_path} for errors...")
     
-    # --- NEW CODE: Initialize the DB ---
+    # Initialize the DB
     doc_collection = setup_knowledge_base()
-    # -----------------------------------
 
     with open(file_path, "r") as file:
 
@@ -56,15 +56,16 @@ def trigger_incident(log_history, doc_collection):
     print(context_chunk)
     print("="*50)
     
-    # --- NEW CODE: Retrieve Documentation ---
-    # The actual error is usually the last line in our rolling window
-    exact_error_line = log_history[-1] 
+    print("\n🧠 Routing context to LLM via Cloud API...")
     
-    # Search the vector database using that specific error line
-    official_docs = retrieve_relevant_docs(exact_error_line, doc_collection)
-    # ----------------------------------------
+    rca_report = generate_rca(context_chunk, doc_collection)
     
-    print("\nRouting context and docs to LLM API...\n")
+    print("\n" + "█"*50)
+    print("📋 ROOT CAUSE ANALYSIS REPORT")
+    print("█"*50)
+    print(rca_report)
+    print("█"*50 + "\n")
+ 
     time.sleep(2) 
 
 if __name__ == "__main__":
