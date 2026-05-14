@@ -15,7 +15,7 @@ def setup_knowledge_base():
     # ChromaDB automatically uses 'all-MiniLM-L6-v2' to embed the text
     collection = client.get_or_create_collection(name="devops_docs")
 
-    # 3. "Official Documentation" (Dummy Data for our specific errors)
+    # 3. "Official Documentation" (Dummy Data for specific errors)
     documents = [
         "Error: psycopg2.OperationalError: FATAL: too many connections. Fix: Increase max_connections in postgresql.conf or implement connection pooling using PgBouncer.",
         "Error: TimeoutError: Request to external payment gateway API timed out. Fix: Check network egress rules, verify the external gateway status page, and ensure exponential backoff retries are active in the microservice.",

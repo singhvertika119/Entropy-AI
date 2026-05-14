@@ -4,8 +4,8 @@ import logging
 import os
 
 # Ensure the logs directory exists
-os.makedirs("../logs", exist_ok=True)
-log_file_path = "../logs/dummy_app.log"
+os.makedirs("logs", exist_ok=True)
+log_file_path = "logs/dummy.log"
 
 # Configure the logger
 logging.basicConfig(
@@ -32,5 +32,5 @@ while True:
     else:
         # 10% of the time, it throws a critical error
         error_msg = random.choice(ERRORS)
-        logging.error(f"Traceback (most recent call last):\n{error_msg}")
+        logging.error(f"Traceback (most recent call last): {error_msg}")
         time.sleep(2) # Pause briefly after an error

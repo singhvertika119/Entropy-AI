@@ -38,4 +38,5 @@ async def analyze_log_endpoint(payload: LogPayload):
             "rca_report": rca_report
         }
     except Exception as e:
+        print(f"🔥 CRITICAL API ERROR: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))

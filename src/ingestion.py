@@ -5,10 +5,9 @@ import requests
 from collections import deque
 
 # Configuration
-LOG_FILE = "../logs/dummy_app.log"
+LOG_FILE = "logs/dummy.log"
 CONTEXT_WINDOW_SIZE = 20
-API_URL = "http://localhost:8000/api/v1/analyze"
-
+API_URL = os.getenv("API_URL", "http://localhost:8000/api/v1/analyze")
 def tail_and_analyze(file_path):
     """Continuously tails the log file, maintaining a rolling window of context."""
     # Wait for the log file to be created by the dummy app

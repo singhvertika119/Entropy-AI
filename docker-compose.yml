@@ -1,0 +1,51 @@
+version: '3.8'
+
+services:
+  # Microservice 1: The AI Backend
+  api_server:
+    build: .
+    command: uvicorn src.main:app --host 0.0.0.0 --port 8000
+    ports:
+      - "8000:8000"
+    env_file:
+      - .env # Pulls in GROQ_API_KEY
+    volumes:
+      - ./chroma_db:/app/chroma_db # Saves DB state to hard drive
+    
+  # Microservice 2: The Failing Application
+  dummy:
+    build: .
+    command: python src/dummy.py
+    volumes:
+      - shared_logs:/app/logs
+      - ./src:/app/src
+
+  # Microservice 3: The Intelligent Agent
+  ingestion_agent:
+    build: .
+    command: python src/ingestion.py
+    environment:
+      - API_URL=http://api_server:8000/api/v1/analyze # Tells agent where the API lives
+    volumes:
+      - shared_logs:/app/logs # Mounts the shared log volume so it can read dummy's logs
+    depends_on:
+      - api_server
+      - dummy
+    
+  # Microservice 4: The Web Dashboard
+  dashboard:
+    build: .
+    command: streamlit run src/dashboard.py --server.port 8502 --server.address 0.0.0.0
+    ports:
+      - "8502:8502"
+    environment:
+      - API_URL=http://api_server:8000/api/v1/analyze
+    volumes:
+      - shared_logs:/app/logs
+      - ./src:/app/src
+    depends_on:
+      - api_server
+      - dummy
+
+volumes:
+  shared_logs: # A virtual folder shared between the app and the agent

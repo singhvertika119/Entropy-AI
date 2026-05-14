@@ -4,3 +4,4 @@ chromadb
 langchain
 langchain-groq
 python-dotenv
+streamlit
