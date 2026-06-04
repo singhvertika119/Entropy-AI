@@ -1,53 +1,101 @@
-import chromadb
-import os
+# Knowledge base: fixed DevOps runbooks (no external embedding model required)
+DOCS = [
+    {
+        "id": "doc_db_01",
+        "text": (
+            "Error: psycopg2.OperationalError: FATAL: too many connections. "
+            "Fix: Increase max_connections in postgresql.conf or implement "
+            "connection pooling using PgBouncer."
+        ),
+        "keywords": [
+            "psycopg2",
+            "operationalerror",
+            "too many connections",
+            "postgresql",
+            "max_connections",
+            "pgbouncer",
+            "database",
+            "connection",
+        ],
+    },
+    {
+        "id": "doc_net_01",
+        "text": (
+            "Error: TimeoutError: Request to external payment gateway API timed out. "
+            "Fix: Check network egress rules, verify the external gateway status page, "
+            "and ensure exponential backoff retries are active in the microservice."
+        ),
+        "keywords": [
+            "timeout",
+            "timed out",
+            "payment gateway",
+            "egress",
+            "network",
+            "retry",
+            "backoff",
+            "external api",
+        ],
+    },
+    {
+        "id": "doc_auth_01",
+        "text": (
+            "Error: KeyError: 'user_auth_token' missing. "
+            "Fix: Ensure the frontend router is passing the Authorization header with a "
+            "valid Bearer token. Check the auth middleware validation logic."
+        ),
+        "keywords": [
+            "keyerror",
+            "user_auth_token",
+            "authorization",
+            "bearer",
+            "token",
+            "auth",
+            "middleware",
+            "401",
+            "403",
+        ],
+    },
+    {
+        "id": "doc_mem_01",
+        "text": (
+            "Error: MemoryError: Unable to allocate 2.4GiB for array shape. "
+            "Fix: The batch size is too large for the available RAM. Reduce batch size "
+            "in the data loader configuration or upgrade the EC2 instance memory."
+        ),
+        "keywords": [
+            "memoryerror",
+            "allocate",
+            "out of memory",
+            "oom",
+            "ram",
+            "batch size",
+            "giB",
+            "memory",
+        ],
+    },
+]
 
-# Define where local vector database will live
-DB_PATH = "../chroma_db"
 
 def setup_knowledge_base():
-    """Initializes ChromaDB and populates it with system documentation."""
-    print("Initializing Vector Database...")
-    
-    # 1. Create a persistent client so data is saved to disk
-    client = chromadb.PersistentClient(path=DB_PATH)
+    """Load the in-memory knowledge base (no vector DB download)."""
+    print(f"Knowledge base ready ({len(DOCS)} documents).")
+    return DOCS
 
-    # 2. Create a collection 
-    # ChromaDB automatically uses 'all-MiniLM-L6-v2' to embed the text
-    collection = client.get_or_create_collection(name="devops_docs")
 
-    # 3. "Official Documentation" (Dummy Data for specific errors)
-    documents = [
-        "Error: psycopg2.OperationalError: FATAL: too many connections. Fix: Increase max_connections in postgresql.conf or implement connection pooling using PgBouncer.",
-        "Error: TimeoutError: Request to external payment gateway API timed out. Fix: Check network egress rules, verify the external gateway status page, and ensure exponential backoff retries are active in the microservice.",
-        "Error: KeyError: 'user_auth_token' missing. Fix: Ensure the frontend router is passing the Authorization header with a valid Bearer token. Check the auth middleware validation logic.",
-        "Error: MemoryError: Unable to allocate 2.4GiB for array shape. Fix: The batch size is too large for the available RAM. Reduce batch size in the data loader configuration or upgrade the EC2 instance memory."
-    ]
-    
-    # Unique IDs for each document
-    ids = ["doc_db_01", "doc_net_01", "doc_auth_01", "doc_mem_01"]
+def _score_doc(error_message: str, doc: dict) -> int:
+    haystack = error_message.lower()
+    return sum(1 for kw in doc["keywords"] if kw in haystack)
 
-    # 4. Insert into the database. (Chroma automatically converts these strings to vectors)
-    collection.upsert(documents=documents, ids=ids)
-    
-    print("✅ Knowledge base successfully populated with official documentation!")
-    return collection
 
-def retrieve_relevant_docs(error_message, collection):
-    """Searches the database for the documentation closest to the error."""
-    print(f"\n🔍 Searching knowledge base for context regarding the error...")
-    
-    # 5. Query the database
-    results = collection.query(
-        query_texts=[error_message],
-        n_results=1 # only want the single most relevant document
-    )
-    
-    if results['documents'] and results['documents'][0]:
-        retrieved_doc = results['documents'][0][0]
-        print(f"📖 Found relevant documentation: {retrieved_doc}")
-        return retrieved_doc
-    
-    return "No official documentation found for this error."
+def retrieve_relevant_docs(error_message, doc_store):
+    """Return the runbook whose keywords best match the error line."""
+    print("\nSearching knowledge base for context regarding the error...")
 
-if __name__ == "__main__":
-    setup_knowledge_base()
+    ranked = sorted(doc_store, key=lambda d: _score_doc(error_message, d), reverse=True)
+    best = ranked[0]
+    if _score_doc(error_message, best) == 0:
+        print("No keyword match; using default database runbook.")
+        return doc_store[0]["text"]
+
+    print(f"Found relevant documentation: {best['text'][:80]}...")
+    return best["text"]

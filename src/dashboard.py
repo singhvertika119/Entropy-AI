@@ -2,53 +2,48 @@ import streamlit as st
 import requests
 import os
 
-# Configure the page
-st.set_page_config(page_title="Entropy AI", page_icon="📡", layout="wide")
+st.set_page_config(page_title="System Monitor", layout="wide")
 
-# API Configuration (Works locally or in Docker)
 API_URL = os.getenv("API_URL", "http://localhost:8000/api/v1/analyze")
 LOG_FILE = "logs/dummy.log"
 
-st.title("📡 Entropy AI")
-st.markdown("Real-time log ingestion and AI-powered Root Cause Analysis.")
+st.markdown("### System Monitor & Diagnostics")
 
-col1, col2 = st.columns([1, 1])
+col1, col2 = st.columns([1.5, 1])
 
 with col1:
-    st.subheader("🖥️ Live Server Logs")
-    # Read the shared log file
+    st.markdown("**Log stream**")
     try:
         with open(LOG_FILE, "r") as f:
             logs = f.readlines()
-            # Show only the last 20 lines for a clean UI
-            log_display = "".join(logs[-20:])
+            log_display = "".join(logs[-25:])
     except FileNotFoundError:
         log_display = "Waiting for logs to be generated..."
-        
-    st.code(log_display, language="log")
+
+    st.code(log_display, language="bash")
 
 with col2:
-    st.subheader("🧠 Manual AI Analysis")
-    st.markdown("Paste an error log snippet below to manually trigger the RAG pipeline.")
-    
-    error_input = st.text_area("Error Line Context:", height=150)
-    
-    if st.button("Generate Root Cause Analysis", type="primary"):
+    st.markdown("**Manual execution**")
+    st.caption("Paste an error log snippet to trigger the RAG pipeline.")
+
+    error_input = st.text_area("Error context", height=150, label_visibility="collapsed")
+
+    if st.button("Run analysis"):
         if error_input:
-            with st.spinner("Querying Vector DB & Cloud LLM..."):
+            with st.spinner("Querying vector DB and LLM..."):
                 payload = {
-                    "error_line": error_input.split('\n')[-1], # Grab the last line as the trigger
-                    "context": error_input
+                    "error_line": error_input.split("\n")[-1],
+                    "context": error_input,
                 }
                 try:
                     response = requests.post(API_URL, json=payload)
                     if response.status_code == 200:
-                        st.success("Analysis Complete!")
-                        st.markdown("### 📋 RCA Report")
-                        st.info(response.json()["rca_report"])
+                        st.markdown("**RCA report**")
+                        st.markdown(response.json()["rca_report"])
                     else:
-                        st.error(f"API Error: {response.text}")
+                        st.error(f"API error: {response.text}")
                 except Exception as e:
                     st.error(f"Connection failed: {e}")
         else:
-            st.warning("Please paste an error log first.")
+            st.warning("Provide error log context before running analysis.")
+
